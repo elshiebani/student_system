@@ -8,12 +8,12 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 DATABASE = 'students.db'
 
-# بيانات الدخول للوحة التحكم بالإدارة
-ADMIN_USERNAME = "Noura_el"
-ADMIN_PASSWORD = "2241997_suluq"  # يمكنك تغيير كلمة المرور من هنا
+ADMIN_USERNAME = "noura"
+ADMIN_PASSWORD = "2241997"
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
+    # زيادة المهلة لـ 20 ثانية لمنع قفل قاعدة البيانات أثناء رفع الملفات
+    conn = sqlite3.connect(DATABASE, timeout=20.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -40,7 +40,6 @@ def init_db():
         ''')
         conn.commit()
 
-# تهيئة قاعدة البيانات
 init_db()
 
 @app.route('/')
@@ -70,18 +69,18 @@ def submit_admission():
         photo_data = photo_file.read() if photo_file else None
         photo_mimetype = photo_file.content_type if photo_file else None
 
-        conn = get_db()
-        conn.execute('''
-            INSERT INTO students 
-            (full_name, national_id, phone, email, qualification, gpa, department, 
-             cert_filename, cert_data, cert_mimetype, 
-             photo_filename, photo_data, photo_mimetype)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (full_name, national_id, phone, email, qualification, gpa, department,
-              cert_filename, cert_data, cert_mimetype,
-              photo_filename, photo_data, photo_mimetype))
-        conn.commit()
-        conn.close()
+        # استخدام with لضمان إغلاق الاتصال وتحرير قاعدة البيانات فوراً
+        with get_db() as conn:
+            conn.execute('''
+                INSERT INTO students 
+                (full_name, national_id, phone, email, qualification, gpa, department, 
+                 cert_filename, cert_data, cert_mimetype, 
+                 photo_filename, photo_data, photo_mimetype)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (full_name, national_id, phone, email, qualification, gpa, department,
+                  cert_filename, cert_data, cert_mimetype,
+                  photo_filename, photo_data, photo_mimetype))
+            conn.commit()
 
         return render_template('success.html', full_name=full_name, national_id=national_id, department=department)
 
@@ -89,7 +88,6 @@ def submit_admission():
         print(f"Error saving student: {e}")
         return f"حدث خطأ أثناء حفظ البيانات: {str(e)}", 500
 
-# تسجيل دخول الإدارة
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -102,35 +100,31 @@ def admin_login():
             flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
     return render_template('admin_login.html')
 
-# لوحة تحكم الإدارة
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    conn = get_db()
-    students = conn.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC').fetchall()
-    conn.close()
+    with get_db() as conn:
+        students = conn.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC').fetchall()
     
     return render_template('admin.html', students=students)
 
-# معاينة وتحميل الملفات المرفوعة
 @app.route('/admin/file/<int:student_id>/<string:file_type>')
 def get_file(student_id, file_type):
     if not session.get('admin_logged_in'):
         return "غير مصرح", 403
 
-    conn = get_db()
-    if file_type == 'cert':
-        row = conn.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
-        filename, data, mimetype = row['cert_filename'], row['cert_data'], row['cert_mimetype']
-    else:
-        row = conn.execute('SELECT photo_filename, photo_data, photo_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
-        filename, data, mimetype = row['photo_filename'], row['photo_data'], row['photo_mimetype']
-    conn.close()
+    with get_db() as conn:
+        if file_type == 'cert':
+            row = conn.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
+        else:
+            row = conn.execute('SELECT photo_filename, photo_data, photo_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
 
-    if not row or not data:
+    if not row or not row[1]:
         return "الملف غير موجود", 404
+
+    filename, data, mimetype = row[0], row[1], row[2]
 
     return send_file(
         io.BytesIO(data),
@@ -139,38 +133,32 @@ def get_file(student_id, file_type):
         download_name=filename or f"{file_type}_{student_id}"
     )
 
-# حذف طالب من المنظومة
 @app.route('/admin/delete/<int:student_id>', methods=['POST'])
 def delete_student(student_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    conn = get_db()
-    conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
+        conn.commit()
     flash('تم حذف سجل الطالب بنجاح', 'success')
     return redirect(url_for('admin_dashboard'))
 
-# تسجيل الخروج
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
-# الاستفسارات
 @app.route('/send_inquiry', methods=['POST'])
 def send_inquiry():
     name = request.form.get('name')
     flash(f'شكراً لك {name}، تم استلام استفسارك بنجاح.', 'success')
     return redirect(url_for('admission'))
 
-# الاستعلام الحقيقي عن الطلب من قاعدة البيانات
 @app.route('/check_status', methods=['POST'])
 def check_status():
     national_id = request.form.get('national_id')
-    conn = get_db()
-    student = conn.execute('SELECT full_name, department FROM students WHERE national_id = ?', (national_id,)).fetchone()
-    conn.close()
+    with get_db() as conn:
+        student = conn.execute('SELECT full_name, department FROM students WHERE national_id = ?', (national_id,)).fetchone()
     if student:
         flash(f'مرحباً {student["full_name"]}، طلبك مسجل بنجاح في قسم ({student["department"]}) وهو قيد المراجعة والتدقيق حالياً.', 'success')
     else:
