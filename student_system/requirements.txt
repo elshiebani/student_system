@@ -1,3 +1,3 @@
-git add requirements.txt
-git commit -m "إضافة مكتبة Flask-Mail"
-git push origin main
+Flask==3.0.0
+Flask-Mail==0.9.1
+gunicorn==21.2.0
