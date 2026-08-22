@@ -1,18 +1,13 @@
 import os
+import tempfile
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mail import Mail, Message
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hist_suluq_secret_key_2026'
 
-# تحديد المسار المطلق لمجلد التحميلات
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# إنشاء مجلد التحميلات إذا لم يكن موجوداً
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# ضبط الحد الأقصى لحجم المرفقات (16 ميجابايت) لمنع تعليق السيرفر
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 # إعدادات البريد الإلكتروني
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -36,39 +31,39 @@ def submit_admission():
         full_name = request.form.get('full_name')
         national_id = request.form.get('national_id')
         phone = request.form.get('phone')
-        email = request.form.get('email')
+        email = request.form.get('email', '')
         qualification = request.form.get('qualification')
         gpa = request.form.get('gpa')
         department = request.form.get('department')
-        
+
         cert_file = request.files.get('certificate_file')
         photo_file = request.files.get('photo_file')
-        
+
+        # حفظ الملفات في المجلد المؤقت الآمن للسيرفر (Temp) لتفادي أخطاء الأذونات على Render
+        temp_dir = tempfile.gettempdir()
         cert_path = None
         photo_path = None
 
-        # 1. حفظ الملفات المرفوعة بأمان
         if cert_file and cert_file.filename != '':
             cert_filename = f"{national_id}_cert_{cert_file.filename}"
-            cert_path = os.path.join(app.config['UPLOAD_FOLDER'], cert_filename)
+            cert_path = os.path.join(temp_dir, cert_filename)
             cert_file.save(cert_path)
-            
+
         if photo_file and photo_file.filename != '':
             photo_filename = f"{national_id}_photo_{photo_file.filename}"
-            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_filename)
+            photo_path = os.path.join(temp_dir, photo_filename)
             photo_file.save(photo_path)
 
-        # 2. إرسال البريد الإلكتروني (إن أمكن دون إيقاف البرنامج)
+        # محاولة إرسال البريد
         try:
             msg = Message(
                 subject=f"طلب تسجيل جديد - الطالب: {full_name}",
                 sender=app.config['MAIL_USERNAME'],
                 recipients=[INSTITUTE_EMAIL]
             )
-            
             msg.body = f"""
-            طلب تسجيل جديد عبر المنظومة الإلكترونية للمعهد العالي سلوق:
-            
+            طلب تسجيل جديد عبر المنظومة الإلكترونية للمعهد العالي للعلوم والتقنية سلوق:
+
             - الاسم الكامل: {full_name}
             - الرقم الوطني: {national_id}
             - رقم الهاتف: {phone}
@@ -77,32 +72,32 @@ def submit_admission():
             - المعدل: {gpa}%
             - القسم المطلوب: {department}
             """
-            
+
             if cert_path and os.path.exists(cert_path):
                 with open(cert_path, 'rb') as fp:
                     msg.attach(os.path.basename(cert_path), "application/octet-stream", fp.read())
-                    
+
             if photo_path and os.path.exists(photo_path):
                 with open(photo_path, 'rb') as fp:
                     msg.attach(os.path.basename(photo_path), "application/octet-stream", fp.read())
 
             mail.send(msg)
-        except Exception as mail_error:
-            # تجاهل خطأ البريد الإلكتروني ومتابعة التوجيه للنجاح
-            print(f"Mail notification error (ignored): {mail_error}")
+        except Exception as mail_err:
+            print(f"Mail Error: {mail_err}")
 
+        # التوجيه لصفحة النجاح مباشرة
         return render_template('success.html', full_name=full_name, national_id=national_id, department=department)
 
     except Exception as e:
-        print(f"General processing error: {e}")
-        flash('حدث خطأ أثناء معالجة الطلب، يرجى إعادة المحاولة.', 'danger')
-        return redirect(url_for('admission'))
+        print(f"Server Processing Error: {e}")
+        # عرض الخطأ للوقوف على أسبابه بدلاً من الشاشة البيضاء
+        return f"حدث خطأ في السيرفر أثناء رفع البيانات: {str(e)}", 500
 
 @app.route('/send_inquiry', methods=['POST'])
 def send_inquiry():
     name = request.form.get('name')
     user_message = request.form.get('message')
-    
+
     try:
         msg = Message(
             subject=f"استفسار جديد من: {name}",
@@ -111,10 +106,10 @@ def send_inquiry():
         )
         msg.body = f"الاسم: {name}\nالرسالة:\n{user_message}"
         mail.send(msg)
-        flash(f'شكراً لك {name}، تم إرسال استفسارك بنجاح إلى إدارة المعهد.', 'success')
+        flash(f'شكراً لك {name}، تم إرسال استفسارك بنجاح.', 'success')
     except Exception as e:
         flash(f'شكراً لك {name}، تم استلام استفسارك بنجاح.', 'success')
-        
+
     return redirect(url_for('admission'))
 
 @app.route('/check_status', methods=['POST'])
