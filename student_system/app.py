@@ -10,7 +10,7 @@ DATABASE = 'students.db'
 
 # بيانات الدخول للوحة التحكم بالإدارة
 ADMIN_USERNAME = "Noura_el"
-ADMIN_PASSWORD = "2241997_sluque"  # يمكنك تغيير كلمة المرور من هنا
+ADMIN_PASSWORD = "2241997_suluq"  # يمكنك تغيير كلمة المرور من هنا
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
