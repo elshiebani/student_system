@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}الرئيسية - تصميم واستضافة المتاجر الإلكترونية{% endblock %}
+
+{% block content %}
+<section id="hero" class="hero">
+    <h1>ابني متجرك الإلكتروني الاحترافي اليوم</h1>
+    <p>حلول متكاملة للتصميم والإستضافة تناسب تطلعات تجارتك</p>
+    <a href="#packages" class="btn">اختر باقتك الان</a>
+</section>
+
+<section id="services" class="services">
+    <h2>خدماتنا</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>تصميم متكامل</h3>
+            <p>واجهات حديثة ومتوافقة مع جميع الشاشات الهواتف والحواسيب.</p>
+        </div>
+        <div class="card">
+            <h3>استضافة سريعة</h3>
+            <p>سيرفرات آمنة مع ضمان استقرار المتجر سرعة التحميل.</p>
+        </div>
+        <div class="card">
+            <h3>دعم وحلول برمجية</h3>
+            <p>تخصيص كامل وفق ومتطلبات عملك الخاصة.</p>
+        </div>
+    </div>
+</section>
+
+<section id="packages" class="packages">
+    <h2>باقات الأسعار</h2>
+    <div class="grid">
+        {% for pkg in packages %}
+        <div class="card package-card">
+            <h3>{{ pkg.name }}</h3>
+            <div class="price">{{ pkg.price }}</div>
+            <ul>
+                {% for feature in pkg.features %}
+                <li>{{ feature }}</li>
+                {% endfor %}
+            </ul>
+            <form action="{{ url_for('order') }}" method="POST">
+                <input type="hidden" name="package_id" value="{{ pkg.id }}">
+                <input type="text" name="name" placeholder="الاسم الكامل" required>
+                <input type="email" name="email" placeholder="البريد الإلكتروني" required>
+                <button type="submit" class="btn">طلب الباقة</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

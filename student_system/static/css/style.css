@@ -1,0 +1,40 @@
+body {
+    background-color: #f4f6f9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #0f3854, #1a5b82);
+    color: white;
+    padding: 30px 0;
+    border-bottom: 5px solid #d4af37;
+}
+
+.logo-img {
+    max-width: 110px;
+    height: auto;
+}
+
+.card-custom {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary-custom {
+    background-color: #0f3854;
+    border: none;
+}
+
+.btn-primary-custom:hover {
+    background-color: #1a5b82;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #0f3854;
+}
+
+.nav-pills .nav-link {
+    color: #0f3854;
+    font-weight: bold;
+}

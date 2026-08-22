@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التسجيل المبدئي - المعهد العالي للعلوم والتقنية سلوق</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <header class="header-section text-center mb-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center text-md-start mb-3 mb-md-0">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="شعار المعهد" class="logo-img">
+                </div>
+                <div class="col-md-8 text-center">
+                    <h3 class="fw-bold mb-1">المعهد العالي للعلوم والتقنية - سلوق</h3>
+                    <p class="mb-0 opacity-75">منظومة القبول والتسجيل المبدئي والاستفسارات الإلكترونية</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mb-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <ul class="nav nav-pills nav-justified mb-4 card-custom bg-white p-2" id="mainTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="register-tab" data-bs-toggle="pill" data-bs-target="#register" type="button"><i class="fas fa-user-plus me-2"></i>التسجيل المبدئي</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="status-tab" data-bs-toggle="pill" data-bs-target="#status" type="button"><i class="fas fa-search me-2"></i>متابعة حالة الطلب</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="faq-tab" data-bs-toggle="pill" data-bs-target="#faq" type="button"><i class="fas fa-question-circle me-2"></i>الاستفسارات والتعليمات</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <!-- التسجيل -->
+            <div class="tab-pane fade show active" id="register">
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-id-card text-primary me-2"></i>نموذج تقديم طالب جديد</h5>
+                    <form action="/submit_admission" method="POST" enctype="multipart/form-data">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">الاسم الرباعي *</label>
+                                <input type="text" name="full_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">الرقم الوطني *</label>
+                                <input type="text" name="national_id" class="form-control" maxlength="12" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">رقم الهاتف *</label>
+                                <input type="tel" name="phone" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">البريد الإلكتروني</label>
+                                <input type="email" name="email" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">المؤهل السابق *</label>
+                                <select name="qualification" class="form-select" required>
+                                    <option value="" selected disabled>اختر المؤهل...</option>
+                                    <option value="علمي">ثانوية عامة - علمي</option>
+                                    <option value="حاسوب">دبلوم متوسط - حاسوب</option>
+                                    <option value="كهرباء">دبلوم متوسط - كهرباء/إلكترونات</option>
+                                    <option value="مهن_طبية">دبلوم متوسط - مهن طبية</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">المعدل العام (%) *</label>
+                                <input type="number" step="0.01" name="gpa" class="form-control" placeholder="مثال: 75.5" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">القسم المطلوب الالتحاق به *</label>
+                                <select name="department" class="form-select" required>
+                                    <option value="" selected disabled>اختر القسم العلمي...</option>
+                                    <option value="تقنية_معلومات">قسم تقنية المعلومات (IT)</option>
+                                    <option value="مهن_طبية">قسم العلوم الطبية والصحية</option>
+                                    <option value="الهندسة_الكهربائية">قسم الهندسة الكهربائية والإلكترونية</option>
+                                    <option value="الإدارة_والمالية">قسم العلوم الإدارية والمالية</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">صورة الشهادة (PDF/JPG) *</label>
+                                <input type="file" name="certificate_file" class="form-control" accept=".pdf,.jpg,.png" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">صورة شخصية *</label>
+                                <input type="file" name="photo_file" class="form-control" accept=".jpg,.png" required>
+                            </div>
+                            <div class="col-12 text-end mt-4">
+                                <button type="submit" class="btn btn-primary-custom text-white px-5 py-2">إرسال طلب التسجيل</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- الاستعلام -->
+            <div class="tab-pane fade" id="status">
+                <div class="card card-custom p-4 text-center">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-search me-2"></i>الاستعلام عن قبول الطلب</h5>
+                    <p class="text-muted">أدخل الرقم الوطني للتحقق من حالة القبول المبدئي.</p>
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                            <form action="/check_status" method="POST">
+                                <div class="input-group mb-3">
+                                    <input type="text" name="national_id" class="form-control" placeholder="أدخل الرقم الوطني..." required>
+                                    <button class="btn btn-primary-custom text-white" type="submit">بحث</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الاستفسارات -->
+            <div class="tab-pane fade" id="faq">
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <div class="card card-custom p-4">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-envelope me-2"></i>إرسال استفسار</h5>
+                            <form action="/send_inquiry" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">الاسم الكامل</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">موضوع الاستفسار</label>
+                                    <textarea name="message" class="form-control" rows="4" placeholder="اكتب استفسارك هنا..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary-custom text-white w-100">إرسال</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card card-custom p-4">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>المستندات المطلوبة</h5>
+                            <ul class="list-group list-group-flush p-0">
+                                <li class="list-group-item bg-transparent"><i class="fas fa-check text-success me-2"></i>استمارة النجاح الأصلية.</li>
+                                <li class="list-group-item bg-transparent"><i class="fas fa-check text-success me-2"></i>شهادة ميلاد وإقامة سارية.</li>
+                                <li class="list-group-item bg-transparent"><i class="fas fa-check text-success me-2"></i>عدد 8 صور شمسية.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
