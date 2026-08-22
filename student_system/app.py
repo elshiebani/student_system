@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import io
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
@@ -6,13 +7,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hist_suluq_secret_key_2026'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-DATABASE = 'students.db'
+# تحديد مسار دائم لقاعدة البيانات لتفادي فقدان البيانات عند إعادة التشغيل
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE = os.path.join(BASE_DIR, 'students.db')
 
 ADMIN_USERNAME = "noura"
 ADMIN_PASSWORD = "2241997"
 
 def get_db():
-    # زيادة المهلة لـ 20 ثانية لمنع قفل قاعدة البيانات أثناء رفع الملفات
     conn = sqlite3.connect(DATABASE, timeout=20.0)
     conn.row_factory = sqlite3.Row
     return conn
@@ -69,7 +71,6 @@ def submit_admission():
         photo_data = photo_file.read() if photo_file else None
         photo_mimetype = photo_file.content_type if photo_file else None
 
-        # استخدام with لضمان إغلاق الاتصال وتحرير قاعدة البيانات فوراً
         with get_db() as conn:
             conn.execute('''
                 INSERT INTO students 
