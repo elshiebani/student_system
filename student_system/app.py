@@ -1,29 +1,29 @@
 import os
-import sqlite3
 import io
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hist_suluq_secret_key_2026'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# تحديد مسار دائم لقاعدة البيانات لتفادي فقدان البيانات عند إعادة التشغيل
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, 'students.db')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 ADMIN_USERNAME = "noura"
 ADMIN_PASSWORD = "2241997"
 
 def get_db():
-    conn = sqlite3.connect(DATABASE, timeout=20.0)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
 
 def init_db():
-    with get_db() as conn:
-        conn.execute('''
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('''
             CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 full_name TEXT NOT NULL,
                 national_id TEXT NOT NULL,
                 phone TEXT NOT NULL,
@@ -32,15 +32,19 @@ def init_db():
                 gpa TEXT,
                 department TEXT,
                 cert_filename TEXT,
-                cert_data BLOB,
+                cert_data BYTEA,
                 cert_mimetype TEXT,
                 photo_filename TEXT,
-                photo_data BLOB,
+                photo_data BYTEA,
                 photo_mimetype TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+            );
         ''')
         conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Database Init Error: {e}")
 
 init_db()
 
@@ -71,17 +75,20 @@ def submit_admission():
         photo_data = photo_file.read() if photo_file else None
         photo_mimetype = photo_file.content_type if photo_file else None
 
-        with get_db() as conn:
-            conn.execute('''
-                INSERT INTO students 
-                (full_name, national_id, phone, email, qualification, gpa, department, 
-                 cert_filename, cert_data, cert_mimetype, 
-                 photo_filename, photo_data, photo_mimetype)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (full_name, national_id, phone, email, qualification, gpa, department,
-                  cert_filename, cert_data, cert_mimetype,
-                  photo_filename, photo_data, photo_mimetype))
-            conn.commit()
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('''
+            INSERT INTO students 
+            (full_name, national_id, phone, email, qualification, gpa, department, 
+             cert_filename, cert_data, cert_mimetype, 
+             photo_filename, photo_data, photo_mimetype)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (full_name, national_id, phone, email, qualification, gpa, department,
+              cert_filename, cert_data, cert_mimetype,
+              photo_filename, photo_data, photo_mimetype))
+        conn.commit()
+        cur.close()
+        conn.close()
 
         return render_template('success.html', full_name=full_name, national_id=national_id, department=department)
 
@@ -106,8 +113,12 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    with get_db() as conn:
-        students = conn.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC').fetchall()
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC')
+    students = cur.fetchall()
+    cur.close()
+    conn.close()
     
     return render_template('admin.html', students=students)
 
@@ -116,16 +127,23 @@ def get_file(student_id, file_type):
     if not session.get('admin_logged_in'):
         return "غير مصرح", 403
 
-    with get_db() as conn:
-        if file_type == 'cert':
-            row = conn.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
-        else:
-            row = conn.execute('SELECT photo_filename, photo_data, photo_mimetype FROM students WHERE id = ?', (student_id,)).fetchone()
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    if file_type == 'cert':
+        cur.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = %s', (student_id,))
+    else:
+        cur.execute('SELECT photo_filename, photo_data, photo_mimetype FROM students WHERE id = %s', (student_id,))
+    
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
 
-    if not row or not row[1]:
+    if not row or not row['cert_data' if file_type == 'cert' else 'photo_data']:
         return "الملف غير موجود", 404
 
-    filename, data, mimetype = row[0], row[1], row[2]
+    filename = row['cert_filename'] if file_type == 'cert' else row['photo_filename']
+    data = bytes(row['cert_data'] if file_type == 'cert' else row['photo_data'])
+    mimetype = row['cert_mimetype'] if file_type == 'cert' else row['photo_mimetype']
 
     return send_file(
         io.BytesIO(data),
@@ -138,9 +156,12 @@ def get_file(student_id, file_type):
 def delete_student(student_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    with get_db() as conn:
-        conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
-        conn.commit()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM students WHERE id = %s', (student_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
     flash('تم حذف سجل الطالب بنجاح', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -158,8 +179,13 @@ def send_inquiry():
 @app.route('/check_status', methods=['POST'])
 def check_status():
     national_id = request.form.get('national_id')
-    with get_db() as conn:
-        student = conn.execute('SELECT full_name, department FROM students WHERE national_id = ?', (national_id,)).fetchone()
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT full_name, department FROM students WHERE national_id = %s', (national_id,))
+    student = cur.fetchone()
+    cur.close()
+    conn.close()
+    
     if student:
         flash(f'مرحباً {student["full_name"]}، طلبك مسجل بنجاح في قسم ({student["department"]}) وهو قيد المراجعة والتدقيق حالياً.', 'success')
     else:
