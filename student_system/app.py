@@ -1,196 +1,128 @@
 import os
-import io
-import psycopg
-from psycopg.rows import dict_row
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+import re
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hist_suluq_secret_key_2026'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.secret_key = os.environ.get('SECRET_KEY', 'suluq_secret_key_2026')
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# إعداد قاعدة البيانات من بيئة Render
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-ADMIN_USERNAME = "noura"
-ADMIN_PASSWORD = "2241997"
+db = SQLAlchemy(app)
 
-def get_db():
-    conn = psycopg.connect(DATABASE_URL)
-    return conn
+# --- نموذج قاعدة البيانات ---
+class Student(db.Model):
+    __tablename__ = 'students'
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    national_id = db.Column(db.String(12), unique=True, nullable=False)
+    parent_phone = db.Column(db.String(20), nullable=False)  # هاتف ولي الأمر
+    department = db.Column(db.String(100), nullable=False)
+    
+    # المؤهل العلمي (بدلاً من الصورة الشخصية)
+    qualifier_filename = db.Column(db.String(200))
+    qualifier_data = db.Column(db.LargeBinary)
+    
+    # الشهادة المرفقة
+    cert_filename = db.Column(db.String(200))
+    cert_data = db.Column(db.LargeBinary)
 
-def init_db():
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS students (
-                id SERIAL PRIMARY KEY,
-                full_name TEXT NOT NULL,
-                national_id TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                email TEXT,
-                qualification TEXT,
-                gpa TEXT,
-                department TEXT,
-                cert_filename TEXT,
-                cert_data BYTEA,
-                cert_mimetype TEXT,
-                photo_filename TEXT,
-                photo_data BYTEA,
-                photo_mimetype TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Database Init Error: {e}")
+with app.app_context():
+    db.create_all()
 
-init_db()
+# --- الصفحات والمسارات ---
 
 @app.route('/')
-@app.route('/admission')
-def admission():
-    return render_template('admission.html')
+def index():
+    return render_template('index.html')
 
-@app.route('/submit_admission', methods=['POST'])
-def submit_admission():
+@app.route('/register', methods=['POST'])
+def register():
+    full_name = request.form.get('full_name', '').strip()
+    national_id = request.form.get('national_id', '').strip()
+    parent_phone = request.form.get('parent_phone', '').strip()
+    department = request.form.get('department', '').strip()
+    
+    # 1. التحقق من الرقم الوطني (12 خانة ويبدأ بـ 1 أو 2)
+    if not re.match(r'^[12]\d{11}$', national_id):
+        flash('خطأ: الرقم الوطني يجب أن يتكون من 12 رقماً ويبدأ بالرقم 1 أو 2.', 'danger')
+        return redirect(url_for('index'))
+    
+    # قراءة ملف المؤهل العلمي والشهادة
+    qualifier_file = request.files.get('qualifier_image')
+    cert_file = request.files.get('cert_file')
+    
+    qualifier_filename = qualifier_file.filename if qualifier_file else None
+    qualifier_data = qualifier_file.read() if qualifier_file else None
+    
+    cert_filename = cert_file.filename if cert_file else None
+    cert_data = cert_file.read() if cert_file else None
+    
     try:
-        full_name = request.form.get('full_name')
-        national_id = request.form.get('national_id')
-        phone = request.form.get('phone')
-        email = request.form.get('email', '')
-        qualification = request.form.get('qualification')
-        gpa = request.form.get('gpa')
-        department = request.form.get('department')
-
-        cert_file = request.files.get('certificate_file')
-        photo_file = request.files.get('photo_file')
-
-        cert_filename = cert_file.filename if cert_file else None
-        cert_data = cert_file.read() if cert_file else None
-        cert_mimetype = cert_file.content_type if cert_file else None
-
-        photo_filename = photo_file.filename if photo_file else None
-        photo_data = photo_file.read() if photo_file else None
-        photo_mimetype = photo_file.content_type if photo_file else None
-
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute('''
-            INSERT INTO students 
-            (full_name, national_id, phone, email, qualification, gpa, department, 
-             cert_filename, cert_data, cert_mimetype, 
-             photo_filename, photo_data, photo_mimetype)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (full_name, national_id, phone, email, qualification, gpa, department,
-              cert_filename, cert_data, cert_mimetype,
-              photo_filename, photo_data, photo_mimetype))
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return render_template('success.html', full_name=full_name, national_id=national_id, department=department)
-
+        new_student = Student(
+            full_name=full_name,
+            national_id=national_id,
+            parent_phone=parent_phone,
+            department=department,
+            qualifier_filename=qualifier_filename,
+            qualifier_data=qualifier_data,
+            cert_filename=cert_filename,
+            cert_data=cert_data
+        )
+        db.session.add(new_student)
+        db.session.commit()
+        flash('تم تسجيل بياناتك بنجاح!', 'success')
     except Exception as e:
-        print(f"Error saving student: {e}")
-        return f"حدث خطأ أثناء حفظ البيانات: {str(e)}", 500
+        db.session.rollback()
+        flash('حدث خطأ أثناء حفظ البيانات، قد يكون الرقم الوطني مسجلاً مسبقاً.', 'danger')
+        
+    return redirect(url_for('index'))
 
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
+# --- لوحة التحكم وتنزيل الملفات ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session['admin_logged_in'] = True
-            return redirect(url_for('admin_dashboard'))
+        if username == 'noura' and password == '2241997':
+            session['logged_in'] = True
+            return redirect(url_for('admin'))
         else:
-            flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
-    return render_template('admin_login.html')
+            flash('بيانات الدخول غير صحيحة', 'danger')
+    return render_template('login.html')
 
 @app.route('/admin')
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    conn = get_db()
-    cur = conn.cursor(row_factory=dict_row)
-    cur.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC')
-    students = cur.fetchall()
-    cur.close()
-    conn.close()
-    
+def admin():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    students = Student.query.all()
     return render_template('admin.html', students=students)
 
-@app.route('/admin/file/<int:student_id>/<string:file_type>')
-def get_file(student_id, file_type):
-    if not session.get('admin_logged_in'):
-        return "غير مصرح", 403
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
 
-    conn = get_db()
-    cur = conn.cursor(row_factory=dict_row)
-    if file_type == 'cert':
-        cur.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = %s', (student_id,))
-    else:
-        cur.execute('SELECT photo_filename, photo_data, photo_mimetype FROM students WHERE id = %s', (student_id,))
-    
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
+@app.route('/file/qualifier/<int:student_id>')
+def get_qualifier(student_id):
+    student = Student.query.get_or_404(student_id)
+    if student.qualifier_data:
+        response = make_response(student.qualifier_data)
+        response.headers['Content-Disposition'] = f'inline; filename={student.qualifier_filename}'
+        return response
+    return "الملف غير موجود", 404
 
-    if not row or not row['cert_data' if file_type == 'cert' else 'photo_data']:
-        return "الملف غير موجود", 404
-
-    filename = row['cert_filename'] if file_type == 'cert' else row['photo_filename']
-    data = bytes(row['cert_data'] if file_type == 'cert' else row['photo_data'])
-    mimetype = row['cert_mimetype'] if file_type == 'cert' else row['photo_mimetype']
-
-    return send_file(
-        io.BytesIO(data),
-        mimetype=mimetype or 'application/octet-stream',
-        as_attachment=False,
-        download_name=filename or f"{file_type}_{student_id}"
-    )
-
-@app.route('/admin/delete/<int:student_id>', methods=['POST'])
-def delete_student(student_id):
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute('DELETE FROM students WHERE id = %s', (student_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    flash('تم حذف سجل الطالب بنجاح', 'success')
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    return redirect(url_for('admin_login'))
-
-@app.route('/send_inquiry', methods=['POST'])
-def send_inquiry():
-    name = request.form.get('name')
-    flash(f'شكراً لك {name}، تم استلام استفسارك بنجاح.', 'success')
-    return redirect(url_for('admission'))
-
-@app.route('/check_status', methods=['POST'])
-def check_status():
-    national_id = request.form.get('national_id')
-    conn = get_db()
-    cur = conn.cursor(row_factory=dict_row)
-    cur.execute('SELECT full_name, department FROM students WHERE national_id = %s', (national_id,))
-    student = cur.fetchone()
-    cur.close()
-    conn.close()
-    
-    if student:
-        flash(f'مرحباً {student["full_name"]}، طلبك مسجل بنجاح في قسم ({student["department"]}) وهو قيد المراجعة والتدقيق حالياً.', 'success')
-    else:
-        flash(f'الرقم الوطني ({national_id}) غير مسجل في المنظومة حتى الآن.', 'warning')
-    return redirect(url_for('admission'))
+@app.route('/file/cert/<int:student_id>')
+def get_cert(student_id):
+    student = Student.query.get_or_404(student_id)
+    if student.cert_data:
+        response = make_response(student.cert_data)
+        response.headers['Content-Disposition'] = f'inline; filename={student.cert_filename}'
+        return response
+    return "الملف غير موجود", 404
 
 if __name__ == '__main__':
     app.run(debug=True)
