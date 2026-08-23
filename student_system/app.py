@@ -11,20 +11,21 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# نموذج قاعدة البيانات
 class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(150), nullable=False)
     national_id = db.Column(db.String(12), unique=True, nullable=False)
-    parent_phone = db.Column(db.String(20), nullable=False)
+    parent_phone = db.Column(db.String(20), nullable=False) # هاتف ولي الأمر
     department = db.Column(db.String(100), nullable=False)
-    gpa = db.Column(db.String(20), nullable=False)  # حقل المعدل الأكاديمي
+    gpa = db.Column(db.String(20), nullable=True) # المعدل
     
-    # صورة المؤهل العلمي
+    # صورة المؤهل العلمي (بدلاً من الصورة الشخصية)
     qualifier_filename = db.Column(db.String(200))
     qualifier_data = db.Column(db.LargeBinary)
     
-    # الشهادة المرفقة / الإضافية
+    # شهادة الميلاد / المرفق الإضافي
     cert_filename = db.Column(db.String(200))
     cert_data = db.Column(db.LargeBinary)
 
@@ -43,11 +44,12 @@ def register():
     department = request.form.get('department', '').strip()
     gpa = request.form.get('gpa', '').strip()
     
-    # التحقق من الرقم الوطني (12 خانة ويبدأ بـ 1 أو 2)
+    # الشرط 1: التحقق أن الرقم الوطني 12 خانة ويبدأ بـ 1 أو 2
     if not re.match(r'^[12]\d{11}$', national_id):
         flash('خطأ: الرقم الوطني يجب أن يتكون من 12 رقماً ويبدأ بالرقم 1 أو 2.', 'danger')
         return redirect(url_for('index'))
     
+    # الشرط 3: صورة المؤهل العلمي بدلاً من الصورة الشخصية
     qualifier_file = request.files.get('qualifier_image')
     cert_file = request.files.get('cert_file')
     
@@ -71,12 +73,22 @@ def register():
         )
         db.session.add(new_student)
         db.session.commit()
-        flash('تم تسجيل بياناتك بنجاح!', 'success')
+        flash('تم تسليم طلب التسجيل بنجاح!', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('حدث خطأ أثناء حفظ البيانات، قد يكون الرقم الوطني مسجلاً مسبقاً.', 'danger')
+        flash('حدث خطأ أثناء حفظ البيانات، يرجى التاكد من عدم تسجيل الرقم الوطني سابقاً.', 'danger')
         
     return redirect(url_for('index'))
+
+@app.route('/search', methods=['POST'])
+def search():
+    search_id = request.form.get('search_national_id', '').strip()
+    student = Student.query.filter_by(national_id=search_id).first()
+    if student:
+        return render_template('index.html', searched_student=student)
+    else:
+        flash('لم يتم العثور على طلب تسجيل مرتبط بهذا الرقم الوطني.', 'warning')
+        return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,7 +107,15 @@ def admin():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     students = Student.query.all()
-    return render_template('admin.html', students=students)
+    total_students = len(students)
+    it_students = sum(1 for s in students if 'تقنية' in s.department or 'IT' in s.department)
+    energy_students = sum(1 for s in students if 'الطاقات' in s.department)
+    
+    return render_template('admin.html', 
+                           students=students, 
+                           total_students=total_students,
+                           it_students=it_students,
+                           energy_students=energy_students)
 
 @app.route('/logout')
 def logout():
