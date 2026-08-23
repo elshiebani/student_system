@@ -1,52 +1,74 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة تسجيل الطلاب</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card p-4">
+                <h3 class="text-center mb-4 text-primary">استمارة تسجيل طالب</h3>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
 
-{% block title %}الرئيسية - تصميم واستضافة المتاجر الإلكترونية{% endblock %}
+                <form action="/register" method="POST" enctype="multipart/form-data">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الاسم الثلاثي:</label>
+                        <input type="text" name="full_name" class="form-control" required placeholder="أدخل الاسم الثلاثي">
+                    </div>
 
-{% block content %}
-<section id="hero" class="hero">
-    <h1>ابني متجرك الإلكتروني الاحترافي اليوم</h1>
-    <p>حلول متكاملة للتصميم والإستضافة تناسب تطلعات تجارتك</p>
-    <a href="#packages" class="btn">اختر باقتك الان</a>
-</section>
+                    <div class="mb-3">
+                        <label class="form-label">الرقم الوطني:</label>
+                        <input type="text" 
+                               name="national_id" 
+                               class="form-control" 
+                               pattern="[12][0-9]{11}" 
+                               maxlength="12" 
+                               placeholder="12 رقم (يبدأ بـ 1 أو 2)" 
+                               title="الرقم الوطني يتكون من 12 رقماً ويبدأ بـ 1 أو 2" 
+                               required>
+                    </div>
 
-<section id="services" class="services">
-    <h2>خدماتنا</h2>
-    <div class="grid">
-        <div class="card">
-            <h3>تصميم متكامل</h3>
-            <p>واجهات حديثة ومتوافقة مع جميع الشاشات الهواتف والحواسيب.</p>
-        </div>
-        <div class="card">
-            <h3>استضافة سريعة</h3>
-            <p>سيرفرات آمنة مع ضمان استقرار المتجر سرعة التحميل.</p>
-        </div>
-        <div class="card">
-            <h3>دعم وحلول برمجية</h3>
-            <p>تخصيص كامل وفق ومتطلبات عملك الخاصة.</p>
+                    <div class="mb-3">
+                        <label class="form-label">رقم هاتف ولي الأمر:</label>
+                        <input type="tel" name="parent_phone" class="form-control" required placeholder="09X XXXXXXX">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">القسم الدراسي:</label>
+                        <input type="text" name="department" class="form-control" required placeholder="أدخل اسم القسم">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">صورة المؤهل العلمي (الشهادة / الإفادة):</label>
+                        <input type="file" name="qualifier_image" class="form-control" accept="image/*,.pdf" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">مرفق إضافي (إن وجد):</label>
+                        <input type="file" name="cert_file" class="form-control" accept="image/*,.pdf">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">حفظ البيانات والتسجيل</button>
+                </form>
+            </div>
         </div>
     </div>
-</section>
-
-<section id="packages" class="packages">
-    <h2>باقات الأسعار</h2>
-    <div class="grid">
-        {% for pkg in packages %}
-        <div class="card package-card">
-            <h3>{{ pkg.name }}</h3>
-            <div class="price">{{ pkg.price }}</div>
-            <ul>
-                {% for feature in pkg.features %}
-                <li>{{ feature }}</li>
-                {% endfor %}
-            </ul>
-            <form action="{{ url_for('order') }}" method="POST">
-                <input type="hidden" name="package_id" value="{{ pkg.id }}">
-                <input type="text" name="name" placeholder="الاسم الكامل" required>
-                <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-                <button type="submit" class="btn">طلب الباقة</button>
-            </form>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endblock %}
+</div>
+</body>
+</html>
