@@ -1,5 +1,6 @@
 import os
 import re
+import mimetypes
 from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
 from flask_sqlalchemy import SQLAlchemy
 
@@ -53,10 +54,10 @@ def register():
     qualifier_file = request.files.get('qualifier_image')
     cert_file = request.files.get('cert_file')
     
-    qualifier_filename = qualifier_file.filename if qualifier_file else None
+    qualifier_filename = qualifier_file.filename if qualifier_file and qualifier_file.filename != '' else None
     qualifier_data = qualifier_file.read() if qualifier_file else None
     
-    cert_filename = cert_file.filename if cert_file else None
+    cert_filename = cert_file.filename if cert_file and cert_file.filename != '' else None
     cert_data = cert_file.read() if cert_file else None
     
     try:
@@ -127,6 +128,8 @@ def get_qualifier(student_id):
     student = Student.query.get_or_404(student_id)
     if student.qualifier_data:
         response = make_response(student.qualifier_data)
+        mime_type, _ = mimetypes.guess_type(student.qualifier_filename or '')
+        response.headers['Content-Type'] = mime_type or 'application/octet-stream'
         response.headers['Content-Disposition'] = f'inline; filename={student.qualifier_filename}'
         return response
     return "الملف غير موجود", 404
@@ -136,6 +139,8 @@ def get_cert(student_id):
     student = Student.query.get_or_404(student_id)
     if student.cert_data:
         response = make_response(student.cert_data)
+        mime_type, _ = mimetypes.guess_type(student.cert_filename or '')
+        response.headers['Content-Type'] = mime_type or 'application/octet-stream'
         response.headers['Content-Disposition'] = f'inline; filename={student.cert_filename}'
         return response
     return "الملف غير موجود", 404
