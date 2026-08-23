@@ -1,7 +1,7 @@
 import os
 import io
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
+from psycopg.rows import dict_row
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 
 app = Flask(__name__)
@@ -14,7 +14,7 @@ ADMIN_USERNAME = "noura"
 ADMIN_PASSWORD = "2241997"
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg.connect(DATABASE_URL)
     return conn
 
 def init_db():
@@ -114,7 +114,7 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     
     conn = get_db()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(row_factory=dict_row)
     cur.execute('SELECT id, full_name, national_id, phone, email, qualification, gpa, department, cert_filename, photo_filename, created_at FROM students ORDER BY id DESC')
     students = cur.fetchall()
     cur.close()
@@ -128,7 +128,7 @@ def get_file(student_id, file_type):
         return "غير مصرح", 403
 
     conn = get_db()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(row_factory=dict_row)
     if file_type == 'cert':
         cur.execute('SELECT cert_filename, cert_data, cert_mimetype FROM students WHERE id = %s', (student_id,))
     else:
@@ -180,7 +180,7 @@ def send_inquiry():
 def check_status():
     national_id = request.form.get('national_id')
     conn = get_db()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(row_factory=dict_row)
     cur.execute('SELECT full_name, department FROM students WHERE national_id = %s', (national_id,))
     student = cur.fetchone()
     cur.close()
