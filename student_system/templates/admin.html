@@ -7,8 +7,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card-stat { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card-stat { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.12); }
         .table-card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+        
+        /* درجات اللون الأزرق للكروت */
+        .bg-blue-main { background-color: #0d6efd; }
+        .bg-blue-dark { background-color: #0a58ca; }
+        .bg-blue-soft { background-color: #0284c7; }
     </style>
 </head>
 <body>
@@ -18,45 +23,48 @@
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
             <h3 class="fw-bold text-primary m-0">المعهد العالي للعلوم والتقنية-سلوق</h3>
-            <p class="text-muted small m-0 mt-1">لوحة متابعة وإدارة طلبت التسجيل الإلكتروني</p>
+            <p class="text-muted small m-0 mt-1">لوحة متابعة وإدارة طلبات التسجيل الإلكتروني</p>
         </div>
         <a href="/logout" class="btn btn-outline-danger fw-bold">تسجيل الخروج</a>
     </div>
 
-    <!-- كروت الإحصائيات (الداش بورد) -->
+    <!-- كروت الإحصائيات بالتنسيق الأزرق -->
     <div class="row g-3 mb-4">
+        <!-- كارت إجمالي الطلبات -->
         <div class="col-md-4">
-            <div class="card card-stat bg-primary text-white p-3">
+            <div class="card card-stat bg-blue-main text-white p-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50">إجمالي الطلبات المقدمة</h6>
                         <h2 class="m-0 fw-bold">{{ total_students }}</h2>
                     </div>
-                    <span class="fs-1"></span>
+                    <span class="fs-1">📋</span>
                 </div>
             </div>
         </div>
         
+        <!-- كارت قسم IT -->
         <div class="col-md-4">
-            <div class="card card-stat bg-success text-white p-3">
+            <div class="card card-stat bg-blue-dark text-white p-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50">قسم تقنية المعلومات (IT)</h6>
                         <h2 class="m-0 fw-bold">{{ it_students }}</h2>
                     </div>
-                    <span class="fs-1"></span>
+                    <span class="fs-1">💻</span>
                 </div>
             </div>
         </div>
 
+        <!-- كارت قسم الطاقات المتجددة -->
         <div class="col-md-4">
-            <div class="card card-stat bg-warning text-dark p-3">
+            <div class="card card-stat bg-blue-soft text-white p-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-dark-50">قسم الطاقات المتجددة</h6>
+                        <h6 class="text-white-50">قسم الطاقات المتجددة</h6>
                         <h2 class="m-0 fw-bold">{{ energy_students }}</h2>
                     </div>
-                    <span class="fs-1"></span>
+                    <span class="fs-1">⚡</span>
                 </div>
             </div>
         </div>
@@ -86,7 +94,7 @@
                         <td class="fw-bold">{{ student.full_name }}</td>
                         <td><span class="badge bg-light text-dark fs-6 border">{{ student.national_id }}</span></td>
                         <td>{{ student.parent_phone }}</td>
-                        <td><span class="badge bg-info text-dark">{{ student.department }}</span></td>
+                        <td><span class="badge bg-primary">{{ student.department }}</span></td>
                         <td class="fw-bold text-primary">{{ student.gpa if student.gpa else '-' }}%</td>
                         <td>
                             {% if student.qualifier_data %}
