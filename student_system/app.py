@@ -6,13 +6,11 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'suluq_secret_key_2026')
 
-# إعداد قاعدة البيانات من بيئة Render
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# --- نموذج قاعدة البيانات ---
 class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
@@ -21,7 +19,7 @@ class Student(db.Model):
     parent_phone = db.Column(db.String(20), nullable=False)  # هاتف ولي الأمر
     department = db.Column(db.String(100), nullable=False)
     
-    # المؤهل العلمي (بدلاً من الصورة الشخصية)
+    # صورة المؤهل العلمي (بدلاً من الصورة الشخصية)
     qualifier_filename = db.Column(db.String(200))
     qualifier_data = db.Column(db.LargeBinary)
     
@@ -31,8 +29,6 @@ class Student(db.Model):
 
 with app.app_context():
     db.create_all()
-
-# --- الصفحات والمسارات ---
 
 @app.route('/')
 def index():
@@ -45,12 +41,11 @@ def register():
     parent_phone = request.form.get('parent_phone', '').strip()
     department = request.form.get('department', '').strip()
     
-    # 1. التحقق من الرقم الوطني (12 خانة ويبدأ بـ 1 أو 2)
+    # التحقق من الرقم الوطني (12 خانة ويبدأ بـ 1 أو 2)
     if not re.match(r'^[12]\d{11}$', national_id):
         flash('خطأ: الرقم الوطني يجب أن يتكون من 12 رقماً ويبدأ بالرقم 1 أو 2.', 'danger')
         return redirect(url_for('index'))
     
-    # قراءة ملف المؤهل العلمي والشهادة
     qualifier_file = request.files.get('qualifier_image')
     cert_file = request.files.get('cert_file')
     
@@ -79,8 +74,6 @@ def register():
         flash('حدث خطأ أثناء حفظ البيانات، قد يكون الرقم الوطني مسجلاً مسبقاً.', 'danger')
         
     return redirect(url_for('index'))
-
-# --- لوحة التحكم وتنزيل الملفات ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
