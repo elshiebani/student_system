@@ -3,31 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - المعهد العالي للعلوم والتقنية-سلوق</title>
+    <title>لوحة التحكم - المعهد العالي للعلوم والتقنية سلوق</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card-stat { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.12); }
-        .table-card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
         
-        .bg-blue-main { background-color: #0d6efd; }
-        .bg-blue-dark { background-color: #0a58ca; }
-        .bg-blue-soft { background-color: #0284c7; }
+        .header-bg {
+            background-color: #0f4c75;
+            border-bottom: 4px solid #d4af37;
+            color: white;
+            padding: 25px 0;
+            margin-bottom: 30px;
+        }
+
+        .card-stat { 
+            border: none; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            background-color: #ffffff;
+            border-top: 4px solid #0f4c75;
+        }
+
+        .table-card { 
+            border: none; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
+        }
+
+        .table-custom-header {
+            background-color: #0f4c75 !important;
+            color: white !important;
+        }
+
+        .btn-custom-danger {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+        }
+
+        .btn-custom-danger:hover {
+            background-color: #bb2d3b;
+            color: white;
+        }
     </style>
 </head>
 <body>
 
-<div class="container-fluid py-4 px-4">
-    <!-- الهيدر العلوي -->
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+<!-- الهيدر الكحلي والذهبي -->
+<div class="header-bg">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
         <div>
-            <h3 class="fw-bold text-primary m-0">المعهد العالي للعلوم والتقنية-سلوق</h3>
-            <p class="text-muted small m-0 mt-1">لوحة متابعة وإدارة طلبات التسجيل الإلكتروني</p>
+            <h3 class="fw-bold m-0">المعهد العالي للعلوم والتقنية - سلوق</h3>
+            <p class="small m-0 mt-1 opacity-75">لوحة التحكم وإدارة طلبات التسجيل الإلكتروني</p>
         </div>
-        <a href="/logout" class="btn btn-outline-danger fw-bold">تسجيل الخروج</a>
+        <a href="/logout" class="btn btn-outline-light btn-sm fw-bold">تسجيل الخروج</a>
     </div>
+</div>
 
-    <!-- عرض رسائل التنبيه/الحذف -->
+<div class="container-fluid px-4">
+    <!-- التنبيهات -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -42,57 +76,42 @@
     <!-- كروت الإحصائيات -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card card-stat bg-blue-main text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-white-50">إجمالي الطلبات المقدمة</h6>
-                        <h2 class="m-0 fw-bold">{{ total_students }}</h2>
-                    </div>
-                    <span class="fs-1"></span>
-                </div>
+            <div class="card card-stat p-3">
+                <h6 class="text-muted fw-bold">إجمالي الطلبات المقدمة</h6>
+                <h2 class="m-0 fw-bold text-dark">{{ total_students }}</h2>
             </div>
         </div>
         
         <div class="col-md-4">
-            <div class="card card-stat bg-blue-dark text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-white-50">قسم تقنية المعلومات (IT)</h6>
-                        <h2 class="m-0 fw-bold">{{ it_students }}</h2>
-                    </div>
-                    <span class="fs-1"></span>
-                </div>
+            <div class="card card-stat p-3" style="border-top-color: #1b6ca8;">
+                <h6 class="text-muted fw-bold">قسم تقنية المعلومات (IT)</h6>
+                <h2 class="m-0 fw-bold text-dark">{{ it_students }}</h2>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card card-stat bg-blue-soft text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-white-50">قسم الطاقات المتجددة</h6>
-                        <h2 class="m-0 fw-bold">{{ energy_students }}</h2>
-                    </div>
-                    <span class="fs-1"></span>
-                </div>
+            <div class="card card-stat p-3" style="border-top-color: #d4af37;">
+                <h6 class="text-muted fw-bold">قسم الطاقات المتجددة</h6>
+                <h2 class="m-0 fw-bold text-dark">{{ energy_students }}</h2>
             </div>
         </div>
     </div>
 
     <!-- جدول عرض الطلبات -->
-    <div class="card table-card p-4 bg-white">
+    <div class="card table-card p-4 bg-white mb-5">
         <h5 class="fw-bold text-secondary mb-3">سجل طلبات التسجيل</h5>
         <div class="table-responsive">
             <table class="table table-hover align-middle border text-center">
-                <thead class="table-dark">
-                    <tr>
+                <thead>
+                    <tr class="table-custom-header">
                         <th>#</th>
-                        <th>الاسم الثلاثي</th>
+                        <th>الاسم الرباعي</th>
                         <th>الرقم الوطني</th>
                         <th>هاتف ولي الأمر</th>
                         <th>التخصص</th>
                         <th>المعدل</th>
                         <th>المؤهل العلمي</th>
-                        <th>شهادة الميلاد / المرفق</th>
+                        <th>المرفقات</th>
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
@@ -103,26 +122,25 @@
                         <td class="fw-bold">{{ student.full_name }}</td>
                         <td><span class="badge bg-light text-dark fs-6 border">{{ student.national_id }}</span></td>
                         <td>{{ student.parent_phone }}</td>
-                        <td><span class="badge bg-primary">{{ student.department }}</span></td>
+                        <td><span class="badge bg-secondary">{{ student.department }}</span></td>
                         <td class="fw-bold text-primary">{{ student.gpa if student.gpa else '-' }}%</td>
                         <td>
                             {% if student.qualifier_data %}
-                                <a href="/file/qualifier/{{ student.id }}" target="_blank" class="btn btn-sm btn-primary">معاينة</a>
+                                <a href="/file/qualifier/{{ student.id }}" target="_blank" class="btn btn-sm btn-outline-primary">معاينة</a>
                             {% else %}
                                 <span class="text-muted small">غير مرفق</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if student.cert_data %}
-                                <a href="/file/cert/{{ student.id }}" target="_blank" class="btn btn-sm btn-secondary">معاينة</a>
+                                <a href="/file/cert/{{ student.id }}" target="_blank" class="btn btn-sm btn-outline-secondary">معاينة</a>
                             {% else %}
                                 <span class="text-muted small">غير مرفق</span>
                             {% endif %}
                         </td>
                         <td>
-                            <!-- زر الحذف -->
                             <form action="/delete_student/{{ student.id }}" method="POST" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذا الطالب؟');" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-danger fw-bold">حذف</button>
+                                <button type="submit" class="btn btn-sm btn-custom-danger">حذف</button>
                             </form>
                         </td>
                     </tr>
