@@ -146,4 +146,19 @@ def get_cert(student_id):
     return "الملف غير موجود", 404
 
 if __name__ == '__main__':
+    @app.route('/delete_student/<int:id>', methods=['POST'])
+def delete_student(id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    student = Student.query.get_or_404(id)
+    try:
+        db.session.delete(student)
+        db.session.commit()
+        flash('تم حذف الطالب بنجاح.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('حدث خطأ أثناء حاول الحذف.', 'danger')
+        
+    return redirect(url_for('admin'))
     app.run(debug=True)
