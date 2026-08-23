@@ -16,14 +16,15 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(150), nullable=False)
     national_id = db.Column(db.String(12), unique=True, nullable=False)
-    parent_phone = db.Column(db.String(20), nullable=False)  # هاتف ولي الأمر
+    parent_phone = db.Column(db.String(20), nullable=False)
     department = db.Column(db.String(100), nullable=False)
+    gpa = db.Column(db.String(20), nullable=False)  # حقل المعدل الأكاديمي
     
-    # صورة المؤهل العلمي (بدلاً من الصورة الشخصية)
+    # صورة المؤهل العلمي
     qualifier_filename = db.Column(db.String(200))
     qualifier_data = db.Column(db.LargeBinary)
     
-    # الشهادة المرفقة
+    # الشهادة المرفقة / الإضافية
     cert_filename = db.Column(db.String(200))
     cert_data = db.Column(db.LargeBinary)
 
@@ -40,6 +41,7 @@ def register():
     national_id = request.form.get('national_id', '').strip()
     parent_phone = request.form.get('parent_phone', '').strip()
     department = request.form.get('department', '').strip()
+    gpa = request.form.get('gpa', '').strip()
     
     # التحقق من الرقم الوطني (12 خانة ويبدأ بـ 1 أو 2)
     if not re.match(r'^[12]\d{11}$', national_id):
@@ -61,6 +63,7 @@ def register():
             national_id=national_id,
             parent_phone=parent_phone,
             department=department,
+            gpa=gpa,
             qualifier_filename=qualifier_filename,
             qualifier_data=qualifier_data,
             cert_filename=cert_filename,
